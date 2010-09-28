@@ -5,8 +5,8 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "ast_ast"
-    gem.summary = %Q{TODO: one-line summary of your gem}
-    gem.description = %Q{TODO: longer description of your gem}
+    gem.summary = %Q{String -> Tokens -> AST}
+    gem.description = %Q{Easily convert strings to Tokens and then on to an Abstract Syntax Tree easily. (Very far from finished!)}
     gem.email = "m@hawx.me"
     gem.homepage = "http://github.com/hawx/ast_ast"
     gem.authors = ["Joshua Hawxwell"]
