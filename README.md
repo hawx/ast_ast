@@ -9,13 +9,13 @@
      AaaaaaaAaaaaAAt     TsssssTs
        tT      t tSTSsssSTt tt
                t tt       t tt
-              /t tt      /t tt  
-             ( t tt     ( t tt  
-              \t tt      \t tt  
+              st tt      st tt  
+             S t tt     S t tt  
+              st tt      st tt  
                t tt       t tt
-               t tt\      t tts
-               S tS.`.    S tS ss
-              tsssst-'   tsssstSSS
+               t tts      t tts
+               S tS s     S tS ss
+              tsssstss   tsssstSSS
 
 
 
