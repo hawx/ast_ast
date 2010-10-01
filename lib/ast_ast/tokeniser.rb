@@ -60,6 +60,8 @@ module Ast
     # @see Ast::Tokeniser::Rule#initialize
     def self.rule(name, regex, &block)
       @rules ||= []
+      # make rules with same name overwrite first rule
+      @rules.delete_if {|i| i.name == name} 
       @rules << Rule.new(name, regex, &block)
     end
     
