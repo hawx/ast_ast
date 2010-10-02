@@ -63,10 +63,18 @@ module Ast
     def self.astify(tokens)
       @tokens = tokens
       r = []
-      @token_descs.each do |i|
-        r << i.block.call(:help, 'method')
+      
+      until @tokens.EOT?
+        c = @tokens.read_next
+        desc = @token_descs.find_all {|i| i.name == c.type}[0] if c
+        r << desc.block.call(c) if desc
       end
-      p r[0]
+      
+      #@token_descs.each do |i|
+      #  p i
+      #  r << i.block.call(@tokens.current)
+      #end
+      r[0]
     end
     
     # Internal for #token block usage
@@ -74,15 +82,31 @@ module Ast
       @tokens.read_next(type)
     end
     
+    def self.scan_next(type=nil)
+      @tokens.scan_next(type)
+    end
+    
+    # @todo Get this to work properly
+    #   The main problem is recurrsion, this _should_ allow someone
+    #   to nest 'blocks' eg. [:begin], ..., [:begin], ..., [:end], [:end]
+    #   should correctly find and execute the middle block, instead of
+    #   getting stuck on the final [:end]. The way this will probably have 
+    #   to be done is by passing the remaining tokens down to a new 
+    #   'process' but with an end condition.
+    #
     def self.read_until(type)
-      @tokens.read_until(type)
+      t = @tokens.rest
+      return if t.nil?
+      # Need to process the rest separately so :ends are found in the 
+      # correct order
+      self.ancestors[0].astify Tokens.new(t)
     end
   
   end
 end
 
 
-
+=begin
 <<EOS # sample code
 class Simple
   def add(n1, n2)
@@ -116,16 +140,23 @@ class RubyAst < Ast::Ast
   # :class ... :end
   token :class do
     [:class, 
-     read_next(:id).value.to_sym,
+     read_next(:id).value,
      [:const, :Object],
      read_until(:end)
     ]
   end
   
+  # :defn ... :end
   token :defn do
     [:defn, 
-     read_next(:id).value.to_sym,
-     read_until(:end)
+     read_next(:id).value,
+     [:scope, 
+      [:block,
+       (scan_next.type != :oparen ? p('hi') : nil),
+       [:args], 
+       read_until(:end)
+      ]
+     ]
     ]
   end
 end
@@ -137,4 +168,5 @@ code = Ast::Tokens.new([
   [:end],
 [:end]
 ])
-RubyAst.astify(code)
+p RubyAst.astify(code)
+=end

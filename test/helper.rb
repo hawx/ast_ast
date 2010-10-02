@@ -2,9 +2,12 @@ require 'rubygems'
 require 'test/unit'
 require 'shoulda'
 
-$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
-$LOAD_PATH.unshift(File.dirname(__FILE__))
-require 'ast_ast'
+require File.join(File.dirname(__FILE__), '..', 'lib', 'ast_ast')
 
 class Test::Unit::TestCase
+
+  def assert_token(item)
+    assert Ast::Token.valid?(item)
+  end
+
 end

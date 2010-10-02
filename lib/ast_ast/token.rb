@@ -10,6 +10,7 @@ module Ast
     # Check whether an array given is valid, ie. it has a symbol
     # then one or no objects only.
     #
+    # @param [Array, Token] arr
     # @example
     #
     #   Ast::Token.valid? [:type, 'val'] #=> true
@@ -38,7 +39,16 @@ module Ast
       if @value.nil?
         "[:#{type}]"
       else
-        "[:#{type}, #{value}]"
+        "[:#{type}, #{value.inspect}]"
+      end
+    end
+    
+    # @return [Array] token as an array
+    def to_a
+      if @value.nil?
+        [@type]
+      else
+        [@type, @value]
       end
     end
     
@@ -55,13 +65,15 @@ module Ast
     
     # Creates tokens for each item given if not already and sets 
     # pointer.
-    def initialize(args)
+    def initialize(args=[])
       @pointer = 0
-      
-      args.each do |i|
-        if i === Token
+      return self if args == []
+      if args[0].is_a? Token
+        args.each_token do |i|
           self << i
-        else
+        end
+      else
+        args.each do |i|
           if i.size > 0
             self << Token.new(i[0], i[1])
           else
@@ -77,48 +89,87 @@ module Ast
       raise "value given #{val} is invalid" unless Token.valid?(val)
       if val.is_a? Array
         if val.size > 0
-          self << Token.new(i[0], i[1])
+          self << Token.new(val[0], val[1])
         else
-          self << Token.new(i[0], nil)
+          self << Token.new(val[0], nil)
         end
       else
         super
       end
     end
     
-    # Reads the next token along. If a type is given will throw error
-    # if next token is of a different type.
-    #
-    # @param [Symbol] type
-    # @return [Token]
-    #
-    def read_next(type=nil)
-      @pointer += 1
-      if type.nil?
-        self[@pointer]
-      else
-        if self[@pointer].type == type
-          self[@pointer]
-        else
-          raise "wrong type: #{type} for #{self[@pointer]}"
-        end
-      end
+    # @return [Array] tokens as an array
+    def to_a
+      self.collect {|i| i.to_a }
     end
     
-    # Reads until the token of +type+.
-    #
-    # @param [Symbol] type
-    # @return [Array]
-    #
-    def read_until(type)
-      r = []
-      while self[@pointer].type != type && @pointer < self.size
-        r << self.read_next
+    # @group Scanning Tokens
+      
+      # @return [Token] the current token being 'pointed' to
+      def current
+        self[@pointer]
       end
-      r.pop
-      @pointer -= 1
-      r
-    end
+      
+      # Reads the next token along. If a type is given will throw error
+      # if next token is of a different type.
+      #
+      # @param [Symbol] type
+      # @return [Token]
+      #
+      def read_next(type=nil)
+        a = nil
+        if type.nil?
+          a = self[@pointer]
+        else
+          if self[@pointer].type == type
+            a = self[@pointer]
+          else
+            raise "wrong type: #{type} for #{self[@pointer]}"
+          end
+        end
+        @pointer += 1
+        a
+      end
+      
+      # Same as #read_next but does not advance pointer
+      def scan_next(type=nil)
+        if type.nil?
+          self[@pointer]
+        else
+          if self[@pointer].type == type
+            self[@pointer]
+          else
+            raise "wrong type: #{type} for #{self[@pointer]}"
+          end
+        end
+      end
+      
+      # @return [boolean] whether at end of tokens
+      def EOT?
+        @pointer >= self.size
+      end
+      
+      # Reads until the token of +type+.
+      #
+      # @param [Symbol] type
+      # @return [Array]
+      #
+      def read_until(type)
+        r = []
+        while self[@pointer].type != type && @pointer < self.size
+          r << self.read_next
+        end
+        r.pop
+        @pointer -= 1
+        r
+      end
+      
+      # @return [Array] all tokens after the current token
+      def rest
+        self[@pointer..self.size]
+      end
+    
+    # @endgroup
     
     # @group Enumeration
     
