@@ -204,6 +204,7 @@ module Ast
         while self.pointer.type != type && !self.eot?
           r << self.scan
         end
+        r << self.scan
         r
       end
       
@@ -215,7 +216,8 @@ module Ast
           r << self.scan
           a += 1
         end
-        self.pos -= a
+        r << self.scan
+        self.pos -= a + 1
         r
       end
       
@@ -232,6 +234,8 @@ module Ast
           self.pos += 1
           r += 1
         end
+        self.pos += 1
+        r += 1
         r
       end
       
