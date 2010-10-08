@@ -54,7 +54,7 @@ module Ast
     
     # Make #inspect show something a bit prettier
     def inspect
-      self.to_s
+      "<#{self.to_s[1..-2]}>"
     end
   
   end
@@ -106,12 +106,17 @@ module Ast
       self.collect {|i| i.to_a }
     end
     
+    def inspect
+      "<# #{self.to_s[1..-2]} >"
+    end
+    
     # @group Scanning Tokens
       
       # @return [Token] the current token being 'pointed' to
       def pointer
         self[@pos]
       end
+      alias_method :curr_item, :pointer
       
       # @return [Integer] current position
       def pos
@@ -121,6 +126,14 @@ module Ast
       # Set the pointer position
       def pos=(val)
         @pos = val
+      end
+      
+      def inc
+        @pos += 1 unless self.eot?
+      end
+      
+      def dec
+        @pos -= 1 unless @pos == 1
       end
       
       # Gets a array of tokens +len+ from current position, without
@@ -150,7 +163,7 @@ module Ast
             raise Error, "wrong type: #{type} for #{self.pointer}"
           end
         end
-        self.pos += 1
+        self.inc
         a
       end
       
@@ -177,10 +190,10 @@ module Ast
       def skip(type=nil)
         @prev_pos = self.pos
         if type.nil?
-          self.pos += 1
+          self.inc
         else
           if self.pointer.type == type
-            self.pos += 1
+            self.inc
           else
             raise Error, "wrong type: #{type} for #{self.pointer}"
           end
@@ -231,17 +244,17 @@ module Ast
         @prev_pos = self.pos
         r = 0
         while self.pointer.type != type && !self.eot?
-          self.pos += 1
+          self.inc
           r += 1
         end
-        self.pos += 1
+        self.inc
         r += 1
         r
       end
       
       # @return [Array] all tokens after the current token
       def rest
-        self[self.pos..self.size]
+        self[self.pos..-1]
       end
       
       # Set the scan pointer to the end of the tokens

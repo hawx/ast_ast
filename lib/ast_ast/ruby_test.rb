@@ -1,4 +1,6 @@
 
+require File.dirname(__FILE__) + "/../ast_ast"
+
 <<EOS # sample code
 class Simple
   def add(n1, n2)

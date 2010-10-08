@@ -31,11 +31,11 @@ module Ast
     
     # @see Ast::Ast#block
     class BlockDesc
-      attr_accessor :open, :close, :body
+      attr_accessor :open, :close, :block
       
-      def initialize(open, close)
+      def initialize(open, close, &block)
         @open, @close = open, close
-        @body = Tokens.new
+        @block = block
       end
     end
     
@@ -77,16 +77,14 @@ module Ast
     #     end
     #
     def self.block(t, &block)
-      open = t.keys[0]
-      close = t.values[0]
       @block_descs ||= []
-      @block_descs << BlockDesc.new(open, close)
+      @block_descs << BlockDesc.new(t.keys[0], t.values[0], &block)
     end
     
     # Runs the +tokens+ through the list found created using #token.
     # Executes the block of the correct token using the token itself.
     # returns the created list.
-    def self.astify(tokens)
+    def self._astify(tokens)
       @tokens = tokens
       r = []
       
@@ -129,6 +127,55 @@ module Ast
       r[0]
     end
     
+    def self.astify(tokens)
+      tokens = find_block(tokens, @block_descs)
+      tokens = run_tokens(tokens, @token_descs)
+    end
+    
+    def self.run_tokens(tok, descs)
+      r = []
+      tok.each do |i|
+        case i
+        when Token
+          _desc = descs.find_all{|j| j.name == i.type}[0]
+          if _desc
+            r << _desc.block.call(i)
+          else
+            r << i
+          end
+        when Array
+          r << run_tokens(i, descs)
+        end
+      end
+      r
+    end
+    
+    def self.find_block(tok, descs, curr_desc=nil)
+      body = []
+      
+      until tok.eot?
+        if curr_desc && curr_desc.close == tok.curr_item.type
+          tok.inc
+          return body
+          
+        elsif descs.map(&:close).include?(tok.curr_item.type)
+          raise "close found before open: #{tok.curr_item}"
+        
+        elsif descs.map(&:open).include?(tok.curr_item.type)
+          _desc = descs.find_all{|i| i.open == tok.curr_item.type}[0]
+          tok.inc
+          found = find_block(tok, descs, _desc)
+          body << _desc.block.call(found)
+          
+        else
+          body << tok.curr_item
+          tok.inc
+        end
+      end
+      
+      body
+    end
+    
     # Internal for #token block usage
     def self.scan(type=nil)
       @tokens.scan(type)
@@ -157,15 +204,22 @@ module Ast
   end
 end
 
+
+
 class BlockTest < Ast::Ast
   block :open => :close do |r|
-    p r
+    back = []
+    r.each do |i|
+      back << Ast::Token.new(i.type, "mod")
+    end
+    back
   end
   
-  token :body do
-    p ":body"
+  token :body do |t|
+    t.value = "modified"
+    t
   end
 end
 
-tokens = Ast::Tokens.new [[:open], [:body], [:close]]
-BlockTest.astify(tokens)
+tokens = Ast::Tokens.new [[:body], [:open], [:body], [:another], [:close], [:body]]
+puts BlockTest.astify(tokens).inspect

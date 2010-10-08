@@ -1,3 +1,6 @@
+require 'duvet'
+Duvet.start :filter => 'lib/ast_ast'
+
 # Test suite for Ast
 require File.join(File.dirname(__FILE__) ,'helper')
 
