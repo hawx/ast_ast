@@ -21,16 +21,16 @@ module Ast
     def self.valid?(arr)
       if arr.is_a? Array
         if arr.nil? || arr.size > 2 || arr.size == 0
-          return false
+          false
         elsif !arr[0].is_a?(Symbol)
-          return false
+          false
         else
-          return true
+          true
         end
       elsif arr.is_a? Token
-        return true
+        true
       else
-        return false
+        false
       end
     end
     
@@ -60,9 +60,8 @@ module Ast
   end
 
 
-  class Tokens < Array    
-    # Remember the previous position
-    attr_accessor :prev_pos
+  class Tokens < Array
+    attr_accessor :prev_pos, :pos
   
     class Error < StandardError; end
     
@@ -107,7 +106,7 @@ module Ast
     end
     
     def inspect
-      "<# #{self.to_s[1..-2]} >"
+      "#< [#{@pos}] #{self.to_s[1..-2]} >"
     end
     
     # @group Scanning Tokens
@@ -118,22 +117,17 @@ module Ast
       end
       alias_method :curr_item, :pointer
       
-      # @return [Integer] current position
-      def pos
-        @pos
-      end
-      
-      # Set the pointer position
-      def pos=(val)
-        @pos = val
-      end
-      
       def inc
-        @pos += 1 unless self.eot?
+        @pos += 1 unless eot?
       end
       
       def dec
         @pos -= 1 unless @pos == 1
+      end
+      
+      # Checks whether the pointer is at a token with type +type+
+      def pointing_at?(type)
+        pointer.type == type
       end
       
       # Gets a array of tokens +len+ from current position, without
@@ -141,7 +135,7 @@ module Ast
       #
       # @return [Array]
       def peek(len)
-        self[self.pos..(self.pos+len)]
+        self[@pos..(@pos+len)]
       end
       
       # Reads the next token along. If a type is given will throw error
@@ -152,28 +146,19 @@ module Ast
       # @raise [Error] if type of next token does not match +type+
       #
       def scan(type=nil)
-        @prev_pos = self.pos
-        a = nil
-        if type.nil?
-          a = self.pointer
-        else
-          if self.pointer.type == type
-            a = self.pointer
-          else
-            raise Error, "wrong type: #{type} for #{self.pointer}"
-          end
-        end
-        self.inc
+        @prev_pos = @pos
+        a = check(type)
+        inc
         a
       end
       
       # Same as #scan but does not advance pointer
       def check(type=nil)
         if type.nil?
-          self.pointer
+          pointer
         else
-          if self.pointer.type == type
-            self.pointer
+          if pointing_at?(type)
+            pointer
           else
             raise Error, "wrong type: #{type} for #{self.pointer}"
           end
@@ -188,12 +173,12 @@ module Ast
       # @raise [Error] if type of next token does not match +type+
       #
       def skip(type=nil)
-        @prev_pos = self.pos
+        @prev_pos = @pos
         if type.nil?
-          self.inc
+          inc
         else
-          if self.pointer.type == type
-            self.inc
+          if pointing_at?(type)
+            inc
           else
             raise Error, "wrong type: #{type} for #{self.pointer}"
           end
@@ -202,7 +187,7 @@ module Ast
       
       # @return [boolean] whether at end of tokens
       def eot?
-        self.pos >= self.size
+        @pos >= self.size
       end
       
       # Scans the tokens until a token of +type+ is found. Returns array
@@ -212,12 +197,12 @@ module Ast
       # @return [Array]
       #
       def scan_until(type)
-        @prev_pos = self.pos
+        @prev_pos = @pos
         r = []
-        while self.pointer.type != type && !self.eot?
-          r << self.scan
+        unless pointing_at?(type) || self.eot?
+          r << scan
         end
-        r << self.scan
+        r << scan
         r
       end
       
@@ -225,12 +210,12 @@ module Ast
       def check_until(type)
         r = []
         a = 0
-        while self.pointer.type != type && !self.eot?
-          r << self.scan
+        unless pointing_at?(type) || self.eot?
+          r << scan
           a += 1
         end
-        r << self.scan
-        self.pos -= a + 1
+        r << scan
+        pos -= a + 1
         r
       end
       
@@ -241,25 +226,25 @@ module Ast
       # @return [Integer]
       #
       def skip_until(type)
-        @prev_pos = self.pos
+        @prev_pos = @pos
         r = 0
-        while self.pointer.type != type && !self.eot?
-          self.inc
+        unless pointing_at?(type) || self.eot?
+          inc
           r += 1
         end
-        self.inc
+        inc
         r += 1
         r
       end
       
       # @return [Array] all tokens after the current token
       def rest
-        self[self.pos..-1]
+        self[@pos..-1]
       end
       
       # Set the scan pointer to the end of the tokens
       def clear
-        self.pos = self.size
+        @pos = self.size
       end
       
       # Sets the pointer to the previous remembered position. Only one
@@ -267,7 +252,7 @@ module Ast
       # skip.
       def unscan
         if @prev_pos
-          self.pos = @prev_pos
+          @pos = @prev_pos
           @prev_pos = nil
         end
       end

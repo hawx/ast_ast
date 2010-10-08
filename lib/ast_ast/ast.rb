@@ -1,4 +1,5 @@
 require File.dirname(__FILE__) + '/token.rb'
+require File.dirname(__FILE__) + '/tree.rb'
 
 module Ast
   class Ast
@@ -128,98 +129,107 @@ module Ast
     end
     
     def self.astify(tokens)
-      tokens = find_block(tokens, @block_descs)
-      tokens = run_tokens(tokens, @token_descs)
+      @tokens = tokens
+      t = find_block
+      t = run_tokens(t, @token_descs)
     end
     
     def self.run_tokens(tok, descs)
       r = []
-      tok.each do |i|
+      @curr_tree = tok
+      
+      until tok.eot?
+        i = tok.scan
         case i
         when Token
+          # run the token
           _desc = descs.find_all{|j| j.name == i.type}[0]
           if _desc
             r << _desc.block.call(i)
           else
             r << i
           end
-        when Array
+        when Tree
+          # run the whole branch
           r << run_tokens(i, descs)
         end
       end
+
       r
     end
     
-    def self.find_block(tok, descs, curr_desc=nil)
-      body = []
+    def self.find_block(curr_desc=nil)
+      body = Tree.new
       
-      until tok.eot?
-        if curr_desc && curr_desc.close == tok.curr_item.type
-          tok.inc
+      until @tokens.eot?
+        # Check if closes current search
+        if curr_desc && curr_desc.close == @tokens.curr_item.type
+          @tokens.inc
           return body
-          
-        elsif descs.map(&:close).include?(tok.curr_item.type)
-          raise "close found before open: #{tok.curr_item}"
         
-        elsif descs.map(&:open).include?(tok.curr_item.type)
-          _desc = descs.find_all{|i| i.open == tok.curr_item.type}[0]
-          tok.inc
-          found = find_block(tok, descs, _desc)
-          body << _desc.block.call(found)
-          
+        # Check if close token in wrong place
+        elsif @block_descs.map(&:close).include?(@tokens.curr_item.type)
+          raise "close found before open: #{@tokens.curr_item}"
+        
+        # Check if open token
+        elsif @block_descs.map(&:open).include?(@tokens.curr_item.type)
+          _desc = @block_descs.find_all {|i| i.open == @tokens.curr_item.type }[0]
+          @tokens.inc
+          found = find_block(_desc)
+          body << Tree.new(_desc.block.call(found))
+        
+        # Otherwise add to body, and start with next token
         else
-          body << tok.curr_item
-          tok.inc
+          body << @tokens.curr_item
+          @tokens.inc
         end
       end
       
       body
     end
     
+    
     # Internal for #token block usage
+    # @see Tokens#scan
     def self.scan(type=nil)
-      @tokens.scan(type)
+      @curr_tree.scan(type)
     end
     
+    # To be used inside #token block
+    # @see Tokens#check
     def self.check(type=nil)
-      @tokens.check(type)
+      @curr_tree.check(type)
     end
     
-    # @todo Get this to work properly
-    #   The main problem is recurrsion, this _should_ allow someone
-    #   to nest 'blocks' eg. [:begin], ..., [:begin], ..., [:end], [:end]
-    #   should correctly find and execute the middle block, instead of
-    #   getting stuck on the final [:end]. The way this will probably have 
-    #   to be done is by passing the remaining tokens down to a new 
-    #   'process' but with an end condition.
-    #
+    # To be used inside #token block
+    # @see Tokens#check
     def self.scan_until(type)
-      t = @tokens.rest
-      return if t.nil?
-      # Need to process the rest separately so :ends are found in the 
-      # correct order
-      self.ancestors[0].astify Tokens.new(t)
+      @curr_tree.scan_until(type)
     end
   
   end
 end
 
 
-
 class BlockTest < Ast::Ast
   block :open => :close do |r|
     back = []
-    r.each do |i|
+    r.rest.each do |i|
       back << Ast::Token.new(i.type, "mod")
     end
     back
   end
   
   token :body do |t|
-    t.value = "modified"
-    t
+    if check && check.type == :id
+      id = scan
+      [t, [id]]
+    else
+      t.value = "modified"  
+      t
+    end
   end
 end
 
-tokens = Ast::Tokens.new [[:body], [:open], [:body], [:another], [:close], [:body]]
+tokens = Ast::Tokens.new [[:body], [:id], [:open], [:body], [:another], [:close], [:body]]
 puts BlockTest.astify(tokens).inspect
