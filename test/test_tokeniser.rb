@@ -9,6 +9,18 @@ class TestTokeniser < Test::Unit::TestCase
       result = [[:word, "sdrawkcab"], [:word, "forwards"]]
       assert_equal result, Word.tokenise("backwards sdrawrof")
     end
+    
+    should "run readme example" do
+      class SentenceTokens < Ast::Tokeniser
+        rule :pronoun, /(I|you|he|she|it)/
+        rule :verb,    /(have|had|will have|play|played|will play)/ # etc
+        rule :article, /(a|an|the)/
+        rule :class,   /(Object|Class|String|Array)/ # etc
+        rule :punct,   /[.,!]/ # etc
+      end
+      result = [[:pronoun, "I"], [:verb, "have"], [:article, "a"], [:class, "String"], [:punct, "!"]]
+      assert_equal result, SentenceTokens.tokenise("I have a String!")
+    end
   end
   
 

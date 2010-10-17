@@ -16,6 +16,10 @@ module Ast
     
     # @group Scanning/Checking/Skipping
     
+      def pos
+        @pos ||= 0
+      end
+    
       def inc
         @pos += 1 unless self.eot?
       end
@@ -26,13 +30,13 @@ module Ast
       
       # @return [Token] the current token being 'pointed' to
       def pointer
-        self[@pos]
+        self[pos]
       end
       alias_method :curr_item, :pointer
       
       # @return [boolean] whether at end of tokens
       def eot?
-        self.pos >= self.size
+        pos >= self.size
       end
       
       def scan(type=nil)

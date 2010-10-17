@@ -1,3 +1,4 @@
+$: << File.join(File.dirname(__FILE__), '..')
 __DIR__ = File.dirname(__FILE__)
 
 require 'strscan'

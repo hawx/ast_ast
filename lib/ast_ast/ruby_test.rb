@@ -34,15 +34,24 @@ class RubyAst < Ast::Ast
 
   # :class ... :end
   block :class => :end do |r|
-    [:class,
-     scan(:id).value,
-     [:const, :Object],
-     r
-    ]
+    id = nil
+    if r.check && r.check.type == :id
+      id = r.scan
+    end
+    
+    a = [:class]
+    a << id.value if id
+    a << [:const, :Object]
+    a << r.rest
+    a
   end
   
+  block :defn => :end do |r|
+    r
+  end
+=begin
   # :defn ... :end
-  token :defn do
+  token :not do
     [:defn, 
      scan(:id).value,
      [:scope, 
@@ -54,6 +63,7 @@ class RubyAst < Ast::Ast
      ]
     ]
   end
+=end
 end
 
 code = Ast::Tokens.new([

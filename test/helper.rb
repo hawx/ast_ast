@@ -9,5 +9,9 @@ class Test::Unit::TestCase
   def assert_token(item)
     assert Ast::Token.valid?(item)
   end
+  
+  def assert_false(item)
+    assert !item
+  end
 
 end

@@ -45,13 +45,15 @@ module Ast
       #   end
       #
       #   Klass.tokenise("split up")
-      #   #=> [[:letter, "s"], [:letter, "p"], [:letter, "l"], [:letter, "i"], [:letter, "t"], [:letter, "u"], [:letter, "p"]]
+      #   #=> [[:letter, "s"], [:letter, "p"], [:letter, "l"], [:letter, "i"], 
+      #        [:letter, "t"], [:letter, "u"], [:letter, "p"]]
       #
       #
       def run(val)
         arr = val.match(@regex).to_a
         val = arr unless arr.empty?
         val = arr[0] if arr.size == 1
+        val = arr[0] if arr[0] == arr[1] # this happens with /(a|b|c)/ regexs
         @block.call val
       end
     end

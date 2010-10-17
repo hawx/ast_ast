@@ -1,17 +1,14 @@
-require File.dirname(__FILE__) + '/token.rb'
-require File.dirname(__FILE__) + '/tree.rb'
-
 module Ast
   class Ast
     attr_accessor :tokens, :token_descs, :block_descs, :groups
     
-    # Describes what to do when a token is found
+    # @see Ast::Ast#token
     class TokenDesc
       attr_accessor :name, :block
     
       def initialize(name, &block)
         @name = name
-        @block = block
+        @block = block || Proc.new {|t| t}
       end
     end
     
@@ -36,7 +33,7 @@ module Ast
       
       def initialize(open, close, &block)
         @open, @close = open, close
-        @block = block
+        @block = block || Proc.new {|b| b}
       end
     end
     
@@ -82,51 +79,6 @@ module Ast
       @block_descs << BlockDesc.new(t.keys[0], t.values[0], &block)
     end
     
-    # Runs the +tokens+ through the list found created using #token.
-    # Executes the block of the correct token using the token itself.
-    # returns the created list.
-    def self._astify(tokens)
-      @tokens = tokens
-      r = []
-      
-      blocks = []
-      # First check if there are any block_descs
-      if @block_descs
-        # then run through these to find the actual blocks
-        until @tokens.eot?
-          c = @tokens.scan
-          # check if a block is opened
-          if @block_descs.map(&:open).include?(c.type)
-            block_desc = @block_descs.find_all{|i| i.open == c.type }[0]
-            body = []
-            # check for block closing
-            until @block_descs.map(&:close).include?(c.type)
-              c = @tokens.scan
-              body << c
-            end
-            body.pop # remove last element which is #close
-            block_desc.body = body
-          end
-        end
-      end
-      
-      # now we have the blocks we can run through token_descs
-      
-      # and return the final array
-      
-      
-      #until @tokens.eot?
-      #  c = @tokens.scan
-      #  desc = @token_descs.find_all {|i| i.name == c.type}[0] if c
-      #  r << desc.block.call(c) if desc
-      #end
-      
-      #@token_descs.each do |i|
-      #  p i
-      #  r << i.block.call(@tokens.current)
-      #end
-      r[0]
-    end
     
     def self.astify(tokens)
       @tokens = tokens
@@ -188,48 +140,27 @@ module Ast
       body
     end
     
+    # @group For #token block
     
-    # Internal for #token block usage
-    # @see Tokens#scan
-    def self.scan(type=nil)
-      @curr_tree.scan(type)
-    end
-    
-    # To be used inside #token block
-    # @see Tokens#check
-    def self.check(type=nil)
-      @curr_tree.check(type)
-    end
-    
-    # To be used inside #token block
-    # @see Tokens#check
-    def self.scan_until(type)
-      @curr_tree.scan_until(type)
-    end
+      # @see Tokens#scan
+      def self.scan(type=nil)
+        @curr_tree.scan(type)
+      end
+      
+      # @see Tokens#check
+      def self.check(type=nil)
+        @curr_tree.check(type)
+      end
+      
+      # @see Tokens#check
+      def self.scan_until(type)
+        @curr_tree.scan_until(type)
+      end
+      
+      # @return [Ast::Tree] current tree being read
+      def self.curr_tree
+        @curr_tree
+      end
   
   end
 end
-
-
-class BlockTest < Ast::Ast
-  block :open => :close do |r|
-    back = []
-    r.rest.each do |i|
-      back << Ast::Token.new(i.type, "mod")
-    end
-    back
-  end
-  
-  token :body do |t|
-    if check && check.type == :id
-      id = scan
-      [t, [id]]
-    else
-      t.value = "modified"  
-      t
-    end
-  end
-end
-
-tokens = Ast::Tokens.new [[:body], [:id], [:open], [:body], [:another], [:close], [:body]]
-puts BlockTest.astify(tokens).inspect

@@ -78,13 +78,13 @@ class TestTokens < Test::Unit::TestCase
     # (x)_until operations
     should "scan until match, and advance pointer" do
       p = @tokens.pos
-      assert_equal [[:first], [:second, "value"], [:third, 3]], @tokens.scan_until(:third)
+      assert_equal [[:first], [:second, "value"], [:third, 3]], @tokens.scan_until(:third).to_a
       assert_equal p+3, @tokens.pos
     end
     
     should "check until match, not advancing pointer" do
       p = @tokens.pos
-      assert_equal [[:first], [:second, "value"]], @tokens.check_until(:second)
+      assert_equal [[:first], [:second, "value"]], @tokens.check_until(:second).to_a
       assert_equal p, @tokens.pos
     end
     
@@ -96,7 +96,7 @@ class TestTokens < Test::Unit::TestCase
     # other methods
     should "get rest of tokens" do
       @tokens.pos = 2
-      assert_equal [[:third, 3], [:final]], @tokens.rest
+      assert_equal [[:third, 3], [:final]], @tokens.rest.to_a
     end
     
     should "clear tokens" do
@@ -112,7 +112,7 @@ class TestTokens < Test::Unit::TestCase
     
     should "get next n tokens" do
       @tokens.pos = 1
-      assert_equal [[:second, "value"], [:third, 3]], @tokens.peek(2)
+      assert_equal [[:second, "value"], [:third, 3]], @tokens.peek(2).to_a
       assert_equal 1, @tokens.pos
     end
     

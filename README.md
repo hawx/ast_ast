@@ -22,6 +22,46 @@
 
 __VERY IMPORTANT:__ it is probably a very bad idea to use this in something that relies on it. It will change without warning!
 
+
+## How To 
+### String -> Ast::Tokens
+
+You've got yourself a string and think that it would be a good idea to turn it into a set of tokens. Simple.
+
+    string = "I have a String!"
+    
+    class SentenceTokens < Ast::Tokeniser
+      rule :pronoun, /(I|you|he|she|it)/
+      rule :verb,    /(have|had|will have|play|played|will play)/ # etc
+      rule :article, /(a|an|the)/
+      rule :class,   /(Object|Class|String|Array)/ # etc
+      rule :punct,   /[.,!]/ # etc
+    end
+    
+    SentenceTokens.tokenise(string)
+    #=> [[:pronoun, "I"], [:verb, "have"], [:article, "a"], [:class, "String"], 
+         [:punct, "!"]]
+
+### Ast::Tokens -> Ast::Tree
+
+Now that you have some tokens you want to create a tree, using Ast::Ast to describe the tokens and blocks it is pretty easy to do.
+
+    # From a simple piece of ruby
+    #
+    #   def my_method(arg)
+    #     return arg + 3
+    #   end
+    #
+    tokens = [[:def], [:id, "my_method"], [:oparen], [:id, "arg"], [:cparen],
+              [:return], [:id, "arg"], [:id, :+], [:int, 3],
+              [:end]]
+              
+    class SentenceTree < Ast::Ast
+      block :defn => :end do |r|
+        
+      end
+
+
 ## Goals/Ideas
 
 Crazy simple string -> token converting, using regular expression rules and optional blocks. Some of the finer points of this still need working out, mainly should you be able to affect the name of the token within the block.

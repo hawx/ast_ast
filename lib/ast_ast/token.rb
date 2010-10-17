@@ -37,9 +37,9 @@ module Ast
     # Make it print like a String
     def to_s
       if @value.nil?
-        "[:#{type}]"
+        "[:#{@type}]"
       else
-        "[:#{type}, #{value.inspect}]"
+        "[:#{@type}, #{@value.inspect}]"
       end
     end
     
@@ -127,15 +127,20 @@ module Ast
       
       # Checks whether the pointer is at a token with type +type+
       def pointing_at?(type)
-        pointer.type == type
+        pointing_at == type
+      end
+      
+      # @return [Symbol] type of token being pointed at
+      def pointing_at
+        pointer.type
       end
       
       # Gets a array of tokens +len+ from current position, without
-      # advancing pointer
+      # advancing pointer.
       #
       # @return [Array]
       def peek(len)
-        self[@pos..(@pos+len)]
+        self[@pos..(@pos+len-1)]
       end
       
       # Reads the next token along. If a type is given will throw error
@@ -194,12 +199,12 @@ module Ast
       # of tokens upto and including the matched token.
       #
       # @param [Symbol] type
-      # @return [Array]
+      # @return [Tokens]
       #
       def scan_until(type)
         @prev_pos = @pos
-        r = []
-        unless pointing_at?(type) || self.eot?
+        r = Tokens.new
+        until pointing_at?(type) || self.eot?
           r << scan
         end
         r << scan
@@ -208,27 +213,26 @@ module Ast
       
       # Same as #scan_until but does not advance pointer
       def check_until(type)
-        r = []
+        r = Tokens.new
         a = 0
-        unless pointing_at?(type) || self.eot?
+        until pointing_at?(type) || self.eot?
           r << scan
           a += 1
         end
         r << scan
-        pos -= a + 1
+        @pos -= a + 1
         r
       end
       
-      # Advances the pointer until token of +type+ is found. Returns
-      # number of tokens advanced, including the matching token.
+      # Advances the pointer until token of +type+ is found.
       #
       # @param [Symbol] type
-      # @return [Integer]
+      # @return [Integer] number of tokens advanced, including match
       #
       def skip_until(type)
         @prev_pos = @pos
         r = 0
-        unless pointing_at?(type) || self.eot?
+        until pointing_at?(type) || self.eot?
           inc
           r += 1
         end
@@ -237,9 +241,9 @@ module Ast
         r
       end
       
-      # @return [Array] all tokens after the current token
+      # @return [Array[Tokens]] all tokens after the current token
       def rest
-        self[@pos..-1]
+        self[pos..-1]
       end
       
       # Set the scan pointer to the end of the tokens
