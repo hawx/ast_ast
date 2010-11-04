@@ -1,5 +1,5 @@
-#require 'duvet'
-#Duvet.start :filter => 'lib/ast_ast'
+require 'duvet'
+Duvet.start :filter => 'lib/ast_ast'
 
 # Test suite for Ast
 $: << File.join(File.dirname(__FILE__), '..')
