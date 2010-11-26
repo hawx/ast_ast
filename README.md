@@ -1,90 +1,61 @@
 # AstAst
 
 
-                    sSSSSs
-              saaAAA     Tttttts
-             sa   tT  t  TT    tt
-      saaaaaaA  t tT  t  TT     Ts
-     sa  tt  T    tT  t  TT     Ts   
-     AaaaaaaAaaaaAAt     TsssssTs
-       tT      t tSTSsssSTt tt
-               t tt       t tt
-              st tt      st tt  
-             S t tt     S t tt  
-              st tt      st tt  
-               t tt       t tt
-               t tts      t tts
-               S tS s     S tS ss
-              tsssstss   tsssstSSS
-
-
-
-
-__VERY IMPORTANT:__ it is probably a very bad idea to use this in something that relies on it. It will change without warning!
+                          sSSSSs
+                    saaAAA     Tttttts
+                   sa   tT  t  TT    tt
+            saaaaaaA  t tT  t  TT     Ts
+           sa  tt  T    tT  t  TT     Ts   
+     - -  AaaaaaaAaaaaAAt     TsssssTs
+             tT      t tSTSsssSTt tt
+                     t tt       t tt
+                    st tt      st tt  
+                   S t tt     S t tt  
+                    st tt      st tt  
+                     t tt       t tt
+                     t tts      t tts
+                     S tS s     S tS ss
+                    tsssstss   tsssstSSS
+  
 
 
 ## How To 
 ### String -> Ast::Tokens
 
-You've got yourself a string and think that it would be a good idea to turn it into a set of tokens. Simple.
+So you have a string, eg:
 
-    string = "I have a String!"
+    an example String, lorem!
+
+And you want to turn it into a set of tokens, for some reason, but can't be bothered messing around with `strscan` so instead use `Ast::Tokeniser`
+
+    string = "an example String, lorem!"
     
-    class SentenceTokens < Ast::Tokeniser
-      rule :pronoun, /(I|you|he|she|it)/
-      rule :verb,    /(have|had|will have|play|played|will play)/ # etc
-      rule :article, /(a|an|the)/
-      rule :class,   /(Object|Class|String|Array)/ # etc
-      rule :punct,   /[.,!]/ # etc
+    class StringTokens < Ast::Tokeniser
+    
+      # A rule uses a regular expression to match against the string given
+      # if it matches a token is created with the name given, eg. +:article+
+      rule :article, /an|a|the/
+      rule :word,    /[a-z]+/
+      rule :punct,   /,|\.|!/
+      
+      # A rule can be passed a block that then modifies the match and returns
+      # something new in it's place, here we are removing the capital.
+      rule :pronoun, /[A-Z][a-z]+/ do |i|
+        i.downcase
+      end
     end
     
-    SentenceTokens.tokenise(string)
-    #=> [[:pronoun, "I"], [:verb, "have"], [:article, "a"], [:class, "String"], 
-         [:punct, "!"]]
+    StringTokens.tokenise(string)
+    #=> #< [0] <:article, "an">, <:word, "example">, <:pronoun, "string">, <:punct, ",">, <:word, "lorem">, <:punct, "!"> >
+    
 
 ### Ast::Tokens -> Ast::Tree
 
-Now that you have some tokens you want to create a tree, using Ast::Ast to describe the tokens and blocks it is pretty easy to do.
-
-    # From a simple piece of ruby
-    #
-    #   def my_method(arg)
-    #     return arg + 3
-    #   end
-    #
-    tokens = [[:def], [:id, "my_method"], [:oparen], [:id, "arg"], [:cparen],
-              [:return], [:id, "arg"], [:id, :+], [:int, 3],
-              [:end]]
-              
-    class SentenceTree < Ast::Ast
-      block :defn => :end do |r|
-        
-      end
-
+Later.
 
 ## Goals/Ideas
 
-Crazy simple string -> token converting, using regular expression rules and optional blocks. Some of the finer points of this still need working out, mainly should you be able to affect the name of the token within the block.
-
-    class MyTokeniser < Ast::Tokeniser
-      rule :long, /--[a-zA-Z0-9]+/
-      rule :short, /-[a-zA-Z0-9]+/
-      rule :word, /[a-zA-Z0-9]+/
-    end
-    input = "--along -sh aword"
-    MyTokeniser.tokenise(input)
-    #=> #<Ast::Tokens [[:long, "--along"], [:short, "-sh"], [:word, "aword"]]>
-    
-    # Use blocks to change results, passes matches
-    class MyTokeniser < Ast::Tokeniser
-      rule :long, /--([a-zA-Z0-9]+)/ {|i| i[1]}
-      rule :short, /-([a-zA-Z0-9]+)/ {|i| i[1].split} # creates an array so splits into multiple tokens
-      rule :word, /[a-zA-Z0-9]+/
-    end
-    input = "--along -sh aword"
-    MyTokeniser.tokenise(input)
-    #=> #<Ast::Tokens [[:long, "along"], [:short, "s"], [:short, "h"], [:word, "aword"]]>
-
+Now that it is possible to take a string and turn it into a set of tokens, I want to be able to take the tokens and turn them into a tree structure. This should be easy to write using a similar DSL to Tokeniser. See below for an idea on how this might be done, though of course when I start writing it, it will change _a lot_.
  
 ### Ast::Ast
 
@@ -103,7 +74,7 @@ Which becomes these tokens:
 We're looking for a tree like this:
   
     tree #=> [:defn, 'method', [
-      [:call, 'print', [
+      [:id, 'print', [
         [:string, 'Hi']
       ]]
     ]]
@@ -114,7 +85,6 @@ Then the class could look something like (something being the keyword):
     
       # create a defn token
       token :defn do
-        # return isn't really necessary
         [
           # start with :defn
           :defn,
