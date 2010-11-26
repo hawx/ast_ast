@@ -1,7 +1,6 @@
 # @abstract
 module Ast
   class Tokeniser
-    attr_accessor :rules, :scanner
     
     # Describes a single rule created within the Ast::Tokeniser subclass
     class Rule  
@@ -61,11 +60,13 @@ module Ast
     # Creates a new Rule and adds to the +@rules+ list.
     # @see Ast::Tokeniser::Rule#initialize
     def self.rule(name, regex, &block)
-      @rules ||= []
+      @@rules ||= []
       # make rules with same name overwrite first rule
-      @rules.delete_if {|i| i.name == name} 
-      @rules << Rule.new(name, regex, &block)
+      @@rules.delete_if {|i| i.name == name} 
+      @@rules << Rule.new(name, regex, &block)
     end
+    
+    def self.rules; @@rules; end
     
     # Takes the input and uses the rules that were created to scan it.
     #
@@ -74,9 +75,9 @@ module Ast
     def self.tokenise(input)
       @scanner = StringScanner.new(input)
       
-      result = []
+      result = Tokens.new
       until @scanner.eos?
-        @rules.each do |i|
+        @@rules.each do |i|
           a = @scanner.scan(i.regex)
           unless a.nil?
             ran = i.run(a)
@@ -89,7 +90,7 @@ module Ast
           end
         end
         # obviously no rule matches this so ignore it
-        # could add verbose mode where this throws an exception!
+        # could add verbose mode?
         @scanner.pos += 1 unless @scanner.eos?
       end
       result
