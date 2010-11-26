@@ -2,15 +2,18 @@
 module Ast
   class Tokeniser
     
-    # Describes a single rule created within the Ast::Tokeniser subclass
     class Rule  
       attr_accessor :name, :regex, :block
       
       # Creates a new Rule instance
       # 
-      # @param [Symbol] name name of the token to be created
-      # @param [Regexp] regex regular expression to be matched
-      # @param [Proc] block optional block to be executed with match(es)
+      # @param name [Symbol]
+      #   Name of the token to be created.
+      # @param regex [Regexp] 
+      #    Regular expression to be matched
+      # @param block [Proc]  
+      #    Optional block to be executed with match(es)
+      #
       def initialize(name, regex, &block)
         @name = name
         @regex = regex
@@ -45,7 +48,7 @@ module Ast
       #
       #   Klass.tokenise("split up")
       #   #=> [[:letter, "s"], [:letter, "p"], [:letter, "l"], [:letter, "i"], 
-      #        [:letter, "t"], [:letter, "u"], [:letter, "p"]]
+      #   #     [:letter, "t"], [:letter, "u"], [:letter, "p"]]
       #
       #
       def run(val)
@@ -58,7 +61,11 @@ module Ast
     end
     
     # Creates a new Rule and adds to the +@rules+ list.
-    # @see Ast::Tokeniser::Rule#initialize
+    # @see Rule#initialize
+    #
+    # @param name [Symbol]
+    # @param regex [Regexp]
+    #
     def self.rule(name, regex, &block)
       @rules ||= []
       # make rules with same name overwrite first rule
@@ -66,12 +73,18 @@ module Ast
       @rules << Rule.new(name, regex, &block)
     end
     
+    # @return [Array]
+    #   Rules that have been defined.
+    #
     def self.rules; @rules; end
     
     # Takes the input and uses the rules that were created to scan it.
     #
-    # @param [String] input string to scan
-    # @return [Array]
+    # @param [String] 
+    #   Input string to scan.
+    #
+    # @return [Tokens]
+    #
     def self.tokenise(input)
       @scanner = StringScanner.new(input)
       

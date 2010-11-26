@@ -10,7 +10,7 @@ module Ast
     # Check whether an array given is valid, ie. it has a symbol
     # then one or no objects only.
     #
-    # @param [Array, Token] arr
+    # @param arr [Array, Token] 
     # @example
     #
     #   Ast::Token.valid? [:type, 'val'] #=> true
@@ -34,16 +34,32 @@ module Ast
       end
     end
     
-    # Make it print like a String
+    # Turn the Token to a String, similar to an array.
+    #
+    # @example
+    #
+    #   Ast::Token.new(:test, "str").to_s
+    #   #=> <:test "str">
+    #
+    # @return [String]
+    #
     def to_s
       if @value.nil?
-        "[:#{@type}]"
+        "<:#{@type}>"
       else
-        "[:#{@type}, #{@value.inspect}]"
+        "<:#{@type}, #{@value.inspect}>"
       end
     end
     
-    # @return [Array] token as an array
+    # Turn the Token to an Array.
+    #
+    # @example 
+    #
+    #   Ast::Token.new(:test, "str").to_a
+    #   #=> [:test, "str"]
+    #
+    # @return [Array]
+    #
     def to_a
       if @value.nil?
         [@type]
@@ -54,7 +70,7 @@ module Ast
     
     # Make #inspect show something a bit prettier
     def inspect
-      "<#{self.to_s[1..-2]}>"
+      self.to_s
     end
   
   end

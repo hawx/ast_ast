@@ -28,7 +28,13 @@ module Ast
       self
     end
     
-    # Converts the item given to a Token if an Array, then adds normally.
+    # Adds +val+ to self, if a Token is given it is added as expected.
+    # If an Array is given and it is valid, it will be converted to a
+    # Token and added, if invalid an error is raised.
+    #
+    # @param val [Token, .valid?]
+    # @return [Tokens]
+    #
     def <<(val)
       raise "value given #{val} is invalid" unless Token.valid?(val)
       if val.is_a? Array
@@ -42,13 +48,16 @@ module Ast
       end
     end
     
-    # @return [Array] tokens as an array
+    # Turns the Tokens, and Token instances inside into arrays.
+    #
+    # @return [Array]
+    #
     def to_a
       self.collect {|i| i.to_a }
     end
     
     def inspect
-      "#< [#{@pos}] #{self.to_s[1..-2]} >"
+      "#< #{@pos}/#{self.size-1} #{self.to_s[1..-2]} >"
     end
     
     # @group Scanning Tokens
@@ -59,38 +68,57 @@ module Ast
       end
       alias_method :curr_item, :pointer
       
+      # Increment the pointer unless at end of tokens.
+      #
+      # @return [Integer, nil]
+      #   New position
+      #
       def inc
         @pos += 1 unless eot?
       end
       
+      # Decrement the pointer unless at first token.
+      #
+      # @return [Integer, nil]
+      #   New position
+      #
       def dec
         @pos -= 1 unless @pos == 0
       end
       
       # Checks whether the pointer is at a token with type +type+
+      #
+      # @return [true, false]
+      #
       def pointing_at?(type)
         pointing_at == type
       end
       
-      # @return [Symbol] type of token being pointed at
+      # Gets the type of the current token.
+      #
+      # @return [Symbol]
+      #
       def pointing_at
         pointer.type
       end
       
-      # Gets a array of tokens +len+ from current position, without
+      # Gets a list of tokens +len+ from current position, without
       # advancing pointer.
       #
+      # @param len [Integer]
       # @return [Tokens]
+      #
       def peek(len)
         self[@pos..(@pos+len-1)]
       end
       
-      # Reads the next token along. If a type is given will throw error
-      # if next token is of a different type.
+      # Reads the current token and advances the pointer. If a type is
+      # given it will throw an error if types do not match.
       #
-      # @param [Symbol] type
+      # @param type [Symbol] 
       # @return [Token]
-      # @raise [Error] if type of next token does not match +type+
+      #
+      # @raise [Error]
       #
       def scan(type=nil)
         @prev_pos = @pos
@@ -99,7 +127,14 @@ module Ast
         a
       end
       
-      # Same as #scan but does not advance pointer
+      # Reads the current token, but does not advance pointer. If a type
+      # is given it will throw an error if types do not match.
+      #
+      # @param type [Symbol]
+      # @return [Token]
+      #
+      # @raise [Error]
+      #
       def check(type=nil)
         if type.nil?
           pointer
@@ -112,11 +147,13 @@ module Ast
         end
       end
       
-      # Attempts to skip the next token. If type is given will only skip
+      # Attempts to skip the current token. If type is given will only skip
       # a token of that type, will raise error for anything else.
       #
-      # @param [Symbol] type
-      # @return [Integer] the new pointer position
+      # @param type [Symbol] 
+      # @return [Integer] 
+      #   The new pointer position
+      #
       # @raise [Error] if type of next token does not match +type+
       #
       def skip(type=nil)
@@ -137,10 +174,15 @@ module Ast
         @pos >= self.size-1
       end
       
-      # Scans the tokens until a token of +type+ is found. Returns array
-      # of tokens upto and including the matched token.
+      # Scans the tokens until a token of +type+ is found. Returns tokens
+      # upto and including the matched token.
+      
+      # Reads the tokens until a token of +type+ is found. Return tokens
+      # upto and including the matched token, also advances pointer.
       #
-      # @param [Symbol] type
+      # @see #scan
+      #
+      # @param type [Symbol] 
       # @return [Tokens]
       #
       def scan_until(type)
@@ -153,7 +195,15 @@ module Ast
         r
       end
       
-      # Same as #scan_until but does not advance pointer
+      # Reads the tokens until a token of +type+ is found. Returns tokens
+      # upto and including the matched token, but does not advance the 
+      # pointer.
+      #
+      # @see #check
+      #
+      # @param type [Symbol]
+      # @return [Tokens]
+      #
       def check_until(type)
         r = Tokens.new
         a = 0
@@ -168,8 +218,9 @@ module Ast
       
       # Advances the pointer until token of +type+ is found.
       #
-      # @param [Symbol] type
-      # @return [Integer] number of tokens advanced, including match
+      # @param type [Symbol]
+      # @return [Integer] 
+      #   Number of tokens advanced, including match
       #
       def skip_until(type)
         @prev_pos = @pos
@@ -183,12 +234,15 @@ module Ast
         r
       end
       
-      # @return [Tokens] all tokens after the current token
+      # @return [Tokens]
+      #   All tokens after the current token.
+      #
       def rest
         self[pos..-1]
       end
       
-      # Set the scan pointer to the end of the tokens
+      # Set the scan pointer to the end of the tokens.
+      #
       def clear
         @pos = self.size-1
       end
@@ -196,6 +250,7 @@ module Ast
       # Sets the pointer to the previous remembered position. Only one
       # previous position is remembered, which is updated every scan or
       # skip.
+      #
       def unscan
         if @prev_pos
           @pos = @prev_pos
@@ -209,10 +264,10 @@ module Ast
     # @group Enumeration
     
       alias_method :_each, :each
+      
       # Loops through the types and contents of each tag separately, passing them
       # to the block given.
       #
-      # @return [Ast::Tokens] returns self
       # @yield [Symbol, Object] gives the type and content of each block in turn
       #
       # @example
@@ -235,16 +290,48 @@ module Ast
         self
       end
       
-      # Evalute block given for the type of each token
+      # Loops through the types of each tag, passing them to block given.
+      #
+      # @yield [Symbol]
       # @see #each
+      # 
+      # @example 
+      #  
+      #   tokens = Ast::Tokens.new
+      #   tokens << [:a, 1] << [:b, 2] << [:c, 3] << [:d, 4]
+      #
+      #   sa.each_type do |t|
+      #     puts t
+      #   end
+      #   #=> a
+      #   #=> b
+      #   #=> c
+      #   #=> d
+      #  
       def each_type(&blck)
         self._each do |i|
           yield(i.type)
         end
       end
       
-      # Evaluate block given for the value of each token
-      # @see each
+      # Loops through the values of each tag, passing them to block given.
+      #
+      # @yield [Object]
+      # @see #each
+      #
+      # @example 
+      #  
+      #   tokens = Ast::Tokens.new
+      #   tokens << [:a, 1] << [:b, 2] << [:c, 3] << [:d, 4]
+      #
+      #   sa.each_value do |v|
+      #     puts v
+      #   end
+      #   #=> 1
+      #   #=> 2
+      #   #=> 3
+      #   #=> 4
+      #  
       def each_value(&blck)
         self._each do |i|
           yield(i.value)
@@ -253,6 +340,25 @@ module Ast
       
       # Evaluate block given for each token instance
       # @see each
+      
+      # Loops through the tokens, passing them to block given.
+      #
+      # @yield [Token]
+      # @see #each
+      #
+      # @example 
+      #  
+      #   tokens = Ast::Tokens.new
+      #   tokens << [:a, 1] << [:b, 2] << [:c, 3] << [:d, 4]
+      #
+      #   sa.each_token do |token|
+      #     puts token
+      #   end
+      #   #=> <:a, 1>
+      #   #=> <:b, 2>
+      #   #=> <:c, 3>
+      #   #=> <:d, 4>
+      #  
       def each_token(&blck)
         self._each do |i|
           yield(i)

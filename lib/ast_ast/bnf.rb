@@ -1,3 +1,6 @@
+$: << File.dirname(__FILE__)
+require 'token'
+
 module Ast
 
   # Allows you to describe the tree using BNF style syntax.
@@ -21,11 +24,10 @@ module Ast
     class Definition
       attr_accessor :name, :rules
       
-      def initialize(name, args, klass)
+      def initialize(name, rules, klass)
         @name = name
-        @rules = args
+        @rules = rules.map {|i| i.is_a?(Array) ? i : [i] }
         @klass = klass
-        p order
       end
       
       # Gets the order of the Definition, this does require
@@ -51,8 +53,23 @@ module Ast
       def order
         if terminal?
           0
+        elsif self_referential?
+          1
         else
-          
+          r = 0
+          @rules.each do |rule|
+            # Only interested in rule with recursion
+            if rule.size > 1
+              rule.each do |elem|
+                # Only interested in references
+                if elem.is_a? String
+                  b = @klass.defs.find_all {|i| i.name == elem}[0].order + 1
+                  r = b if b > r # swap if higher
+                end
+              end
+            end
+          end
+          r
         end
       end
       
@@ -62,73 +79,109 @@ module Ast
       # cases.
       #
       # @return [Boolean] whether contains just terminal elements
+      #
       def terminal?
         @rules.each do |r|
-          return false unless r == Array
-          r.each do |i|
-            return false if i === Symbol
+          if r.is_a? Array
+            r.each do |i|
+             return false if i.is_a? String
+            end
           end
         end
+        true
       end
-    end
-    
-    # Set up a hook to store the subclasses name.
-    def self.inherited(klass); @@klass = klass; end
-    
-    def self.define(name, *args)
-      @defs ||= []
-      @defs << Definition.new(name, args, @@klass)
-    end
-    
-    def self.to_tree(tokens)
-      i = 0
-      while i < tokens.size
-        c = tokens[i]
-        
-        @defs.each do |d|
-          d.rules.each do |rule|
-            case rule
-            when Array # reads multiple tokens
-              # get list of tokens to match rule
-              list = tokens[i..rule.size-1]
-              # go to next if list is not big enough
-              next if list.size < rule.size
-              res = []
-              # go through each and check
-              rule.each_with_index do |r, i|
-                if r == list[i][0] # add if correct
-                  res << list[i][1]
-                end
-              end
-              # check all tokens where correct
-              next if res.size != rule.size
-              c[0] = d.name
-              c[1] = res.join('')
-              tokens.slice!(i+1, rule.size-1)
-            
-            when Symbol # terminal rule
-              if c[0] == rule
-                c[0] = d.name
-                i -= 1 # check this token again
+      
+      # A Definition is self referential if the only refernce to
+      # another rule is to itself or if the other references are
+      # to terminal rule.
+      #
+      # This is not a perfect definition of what "self referential"
+      # really means but it does help when finding the order!
+      #
+      # @return [Boolean] whether the definition is self referential 
+      #
+      def self_referential?
+        r = false
+        @rules.each do |rule|
+          rule.each do |elem|
+            if elem == @name
+              r = true
+            else
+              k = @klass.defs.find_all{|i| i.name == elem}[0]
+              if k && k.terminal?
+                r = true
+              else
+                return false  
               end
             end
           end
         end
-
-        i += 1
+        r
+      end
+      
+      def inspect; "#<Ast::BNF::Definition #{@name}>"; end
+      
+    end
+    
+    def initialize(name, &block)
+      @block = block
+    end
+    
+    def to_tree(tokens)
+      self.instance_eval(&@block)
+      
+      # get matrix of defs in order by order
+      defs_orders = @defs.collect {|i| [i.order, i]}
+      ordered_defs = []
+      defs_orders.each do |i|
+        ordered_defs[i[0]] ||= []
+        ordered_defs[i[0]] << i[1]
+      end
+        
+      result = []
+      ordered_defs.each do |order|
+        
+        order.each do |definition|
+          c = tokens.scan
+          
+          definition.rules.each do |rule|
+            list = tokens.peek(rule.size)
+            
+            res = []
+            rule.zip(list) do |(a, b)|
+              next if b.nil?
+              if a == b.type
+                res << b.value
+              end
+            end
+            next if res.size != rule.size
+            p [definition.name, res.join('')]
+          end
+        end
       end
 
-      p tokens
+      tokens
     end
-  
+    
+    def define(name, *args)
+      @defs ||= []
+      @defs << Definition.new(name, args, self)
+    end
+    
   end
 end
 
-class Test < Ast::BNF
-  define "Number",  ["Number", :number], :number
-  define "Word",    ["Word", :letter], :letter
-  define "String",  [:quote, "Word", :quote]
+
+# This is here for testing only! Better name is required
+def bnf_definition(name, &block)
+  Ast::BNF.new(name, &block)
 end
 
-tokens = [[:letter, 'a'], [:letter, 'b'], [:number, '5'], [:number, '9']]
-Test.to_tree(tokens)
+test = bnf_definition('hello') do
+  define "Digit",   :number
+  define "Letter",  :letter
+  define "Number",  ["Number", "Digit"], "Digit"
+  define "Word",    ["Word", "Letter"], "Letter"
+  define "String",  [:quote, "Word", :quote]
+end
+p test.to_tree Ast::Tokens.new([[:letter, 'a'], [:letter, 'b'], [:number, '5'], [:number, '9']])
