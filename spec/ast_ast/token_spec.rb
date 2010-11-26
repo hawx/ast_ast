@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Ast::Token do
 
-  describe "#valid?" do
+  describe ".valid?" do
     subject { Ast::Token }
     
     it "returns false when given 3 item array" do
