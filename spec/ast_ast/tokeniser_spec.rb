@@ -79,6 +79,23 @@ describe Ast::Tokeniser do
       r = Klass2.tokenise("--along -sh aword")
       r.to_a.should == [[:long, "along"], [:short, "s"], [:short, "h"], [:word, "aword"]]
     end
+    
+    it "runs example in Readme" do
+      string = "an example String, lorem!"
+      
+      class StringTokens < Ast::Tokeniser
+        rule :article, /an|a|the/
+        rule :word,    /[a-z]+/
+        rule :punct,   /,|\.|!/
+
+        rule :pronoun, /[A-Z][a-z]+/ do |i|
+          i.downcase
+        end
+      end
+      
+      r = [[:article, "an"], [:word, "example"], [:pronoun, "string"], [:punct, ","], [:word, "lorem"], [:punct, "!"]]
+      StringTokens.tokenise(string).to_a.should == r
+    end
   end
 
 end

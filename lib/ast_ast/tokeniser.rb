@@ -60,13 +60,13 @@ module Ast
     # Creates a new Rule and adds to the +@rules+ list.
     # @see Ast::Tokeniser::Rule#initialize
     def self.rule(name, regex, &block)
-      @@rules ||= []
+      @rules ||= []
       # make rules with same name overwrite first rule
-      @@rules.delete_if {|i| i.name == name} 
-      @@rules << Rule.new(name, regex, &block)
+      @rules.delete_if {|i| i.name == name} 
+      @rules << Rule.new(name, regex, &block)
     end
     
-    def self.rules; @@rules; end
+    def self.rules; @rules; end
     
     # Takes the input and uses the rules that were created to scan it.
     #
@@ -77,9 +77,11 @@ module Ast
       
       result = Tokens.new
       until @scanner.eos?
-        @@rules.each do |i|
+        m = false # keep track of matches
+        @rules.each do |i|
           a = @scanner.scan(i.regex)
           unless a.nil?
+            m = true # match happened
             ran = i.run(a)
             # split array into separate tokens, *not* values
             if ran.is_a? Array
@@ -89,9 +91,11 @@ module Ast
             end
           end
         end
-        # obviously no rule matches this so ignore it
-        # could add verbose mode?
-        @scanner.pos += 1 unless @scanner.eos?
+        unless m # if no match happened
+          # obviously no rule matches this so ignore it
+          # could add verbose mode?
+          @scanner.pos += 1 unless @scanner.eos?
+        end
       end
       result
     end
