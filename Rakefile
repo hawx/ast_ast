@@ -1,7 +1,7 @@
 require 'rake'
 require 'grancher/task'
 
-require File.expand_path('lib/ast_ast/version', __FILE__)
+require File.expand_path('../lib/ast_ast/version', __FILE__)
 
 Grancher::Task.new do |g|
   g.branch    = 'gh-pages'
