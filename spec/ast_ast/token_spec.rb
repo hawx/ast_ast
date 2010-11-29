@@ -32,7 +32,7 @@ describe Ast::Token do
       
     describe "#to_s" do
       it "shows type and value" do
-        subject.to_s.should == "[:a, \"b\"]"
+        subject.to_s.should == "<:a, \"b\">"
       end
     end
     
@@ -48,7 +48,7 @@ describe Ast::Token do
     
     describe "#to_s" do
       it "shows only type" do
-        subject.to_s.should == "[:a]"
+        subject.to_s.should == "<:a>"
       end
     end
     
