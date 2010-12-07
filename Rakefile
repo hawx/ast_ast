@@ -39,6 +39,7 @@ namespace :release do
       end
       system "git tag v#{Ast::VERSION}"
       system 'git push origin --tags'
+      system 'git push origin master'
     else
       raise "Unstaged changes still waiting to be commited"
     end
