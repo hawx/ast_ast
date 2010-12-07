@@ -3,7 +3,7 @@ module Ast
     attr_accessor :type, :value
     
     def initialize(type, value)
-      @type = type.to_sym
+      @type = type
       @value = value
     end
     
@@ -45,9 +45,9 @@ module Ast
     #
     def to_s
       if @value.nil?
-        "<:#{@type}>"
+        "<#{@type.inspect}>"
       else
-        "<:#{@type}, #{@value.inspect}>"
+        "<#{@type.inspect}, #{@value.inspect}>"
       end
     end
     
