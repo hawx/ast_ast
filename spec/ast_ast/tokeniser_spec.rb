@@ -35,18 +35,18 @@ describe Ast::Tokeniser do
 
   describe ".rule" do
     
-    class Klass1 < Ast::Tokeniser
+    class KlassRule < Ast::Tokeniser
       rule :over, /b/
     end
      
     it "adds a new rule to list" do
-      Klass1.rule(:test, /c/)
-      Klass1.rules.map {|i| i.name}.should include :test
+      KlassRule.rule(:test, /c/)
+      KlassRule.rules.map {|i| i.name}.should include :test
     end
     
     it "overwrites existing rules with same name" do
-      Klass1.rule(:over, /a/)
-      Klass1.rules.find_all {|i| i.name == :over}.size.should == 1
+      KlassRule.rule(:over, /a/)
+      KlassRule.rules.find_all {|i| i.name == :over}.size.should == 1
     end
   end
   
@@ -68,9 +68,27 @@ describe Ast::Tokeniser do
     
   end
   
+  describe ".missing" do
+  
+    class KlassMissing < Ast::Tokeniser
+      missing do |i|
+        Ast::Token.new(i, i)
+      end
+    end
+    
+    it "creates a proc" do
+      KlassMissing.missing.should be_kind_of Proc
+    end
+    
+    it "invokes the proc when a match is not found" do
+      KlassMissing.tokenise("abc").to_a.should == [["a", "a"], ["b", "b"], ["c", "c"]]
+    end
+  
+  end
+  
   describe ".tokenise" do
   
-    class Klass2 < Ast::Tokeniser
+    class KlassTokenise < Ast::Tokeniser
       
       commands = %w(git commit status)
     
@@ -92,10 +110,10 @@ describe Ast::Tokeniser do
       
     end
     
-    specify { Klass2.tokenise("").should be_kind_of Ast::Tokens }
+    specify { KlassTokenise.tokenise("").should be_kind_of Ast::Tokens }
     
     it "retuns the correct tokens" do
-      r = Klass2.tokenise("git --along -sh aword")
+      r = KlassTokenise.tokenise("git --along -sh aword")
       r.to_a.should == [[:command, "git"], [:long, "along"], [:short, "s"], [:short, "h"], [:word, "aword"]]
     end
     

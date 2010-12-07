@@ -114,6 +114,20 @@ module Ast
       @rules << Rule.new(nil, regex, block)
     end
     
+    # Define a block to run when no match is found, as with +.token+ the block
+    # should return a token instance. The block will only be passed a single 
+    # character at a time.
+    #
+    # @example
+    #
+    #   missing do |i|
+    #     Ast::Token.new(i, i)
+    #   end
+    #
+    def self.missing(&block)
+      @missing ||= block
+    end
+    
     # Takes the input and uses the rules that were created to scan it.
     #
     # @param [String] 
@@ -122,6 +136,7 @@ module Ast
     # @return [Tokens]
     #
     def self.tokenise(input)
+      @rules ||= []
       @scanner = StringScanner.new(input)
       
       result = Tokens.new
@@ -143,9 +158,11 @@ module Ast
           end
         end
         unless m # if no match happened
-          # obviously no rule matches this so ignore it
-          # could add verbose mode?
-          @scanner.pos += 1 unless @scanner.eos?
+          # obviously no rule matches this so invoke missing if it exists
+          ch = @scanner.getch # this advances pointer as well
+          if @missing
+            result << @missing.call(ch)
+          end
         end
       end
       result
