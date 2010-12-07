@@ -11,15 +11,6 @@ describe Ast::Tokeniser::Rule do
     specify { subject.regex.should be_kind_of Regexp }
   end
   
-  describe "#block" do
-    specify { subject.block.should be_kind_of Proc }
-    context "when no block is given" do
-      it "use default proc which returns argument" do
-        subject.block.call(1).should == 1
-      end
-    end
-  end
-  
   describe "#run" do
     
     context "when returning a string" do
@@ -59,9 +50,30 @@ describe Ast::Tokeniser do
     end
   end
   
+  describe ".token" do
+    
+    class KlassToken < Ast::Tokeniser
+      token /[a-z]+/ do |i|
+        if i.include? "a"
+          Ast::Token.new(:a_tok, i)
+        else
+          Ast::Token.new(:not_a, i)
+        end
+      end
+    end
+    
+    it "adds a new rule to list" do
+      KlassToken.rules.map {|i| i.regex}.should include /[a-z]+/
+    end
+    
+  end
+  
   describe ".tokenise" do
   
     class Klass2 < Ast::Tokeniser
+      
+      commands = %w(git commit status)
+    
       rule :long, /--([a-zA-Z0-9]+)/ do |i| 
         i[1]
       end
@@ -70,14 +82,21 @@ describe Ast::Tokeniser do
         i[1].split('')
       end
       
-      rule :word, /[a-zA-Z0-9]+/
+      token /[a-zA-Z0-9]+/ do |i|
+        if commands.include?(i)
+          Ast::Token.new(:command, i)
+        else
+          Ast::Token.new(:word, i)
+        end
+      end
+      
     end
     
     specify { Klass2.tokenise("").should be_kind_of Ast::Tokens }
     
     it "retuns the correct tokens" do
-      r = Klass2.tokenise("--along -sh aword")
-      r.to_a.should == [[:long, "along"], [:short, "s"], [:short, "h"], [:word, "aword"]]
+      r = Klass2.tokenise("git --along -sh aword")
+      r.to_a.should == [[:command, "git"], [:long, "along"], [:short, "s"], [:short, "h"], [:word, "aword"]]
     end
     
     it "runs example in Readme" do

@@ -3,7 +3,7 @@ module Ast
   class Tokeniser
     
     class Rule  
-      attr_accessor :name, :regex, :block
+      attr_accessor :name, :regex, :proc
       
       # Creates a new Rule instance
       # 
@@ -11,13 +11,13 @@ module Ast
       #   Name of the token to be created.
       # @param regex [Regexp] 
       #    Regular expression to be matched
-      # @param block [Proc]  
-      #    Optional block to be executed with match(es)
+      # @param proc [Proc]  
+      #    Optional proc to be executed with match(es)
       #
-      def initialize(name, regex, &block)
+      def initialize(name, regex, proc=nil, &block)
         @name = name
         @regex = regex
-        @block = block || Proc.new {|i| i}
+        @proc = proc || block
       end
       
       # Runs the block that was given using either, the full match if there
@@ -56,7 +56,7 @@ module Ast
         val = arr unless arr.empty?
         val = arr[0] if arr.size == 1
         val = arr[0] if arr[0] == arr[1] # this happens with /(a|b|c)/ regexs
-        @block.call val
+        @proc.call val
       end
     end
     
@@ -69,14 +69,50 @@ module Ast
     def self.rule(name, regex, &block)
       @rules ||= []
       # make rules with same name overwrite first rule
-      @rules.delete_if {|i| i.name == name} 
-      @rules << Rule.new(name, regex, &block)
+      @rules.delete_if {|i| i.name == name}
+      
+      # Create default block which just returns a value
+      block ||= Proc.new {|i| i}
+      # Make sure to return a token
+      proc = Proc.new {|_i| 
+        block_result = block.call(_i)
+        if block_result.is_a? Array
+          r = []
+          block_result.each do |j|
+            r << Ast::Token.new(name, j)
+          end
+          r
+        else
+          Ast::Token.new(name, block_result) 
+        end
+      }
+      @rules << Rule.new(name, regex, proc)
     end
     
     # @return [Array]
     #   Rules that have been defined.
     #
     def self.rules; @rules; end
+    
+    # Creates a new token rule, that is the block returns an Ast::Token instance.
+    # 
+    # @example
+    #  
+    #   keywords = ['def', 'next', 'while', 'end']
+    #
+    #   token /[a-z]+/ do |i|
+    #     if keywords.include?(i)
+    #       Ast::Token.new(:keyword, i)
+    #     else
+    #       Ast::Token.new(:word, i)
+    #   end
+    #
+    # @param regex [Regexp]
+    #
+    def self.token(regex, &block)
+      @rules ||= []
+      @rules << Rule.new(nil, regex, block)
+    end
     
     # Takes the input and uses the rules that were created to scan it.
     #
@@ -98,9 +134,11 @@ module Ast
             ran = i.run(a)
             # split array into separate tokens, *not* values
             if ran.is_a? Array
-              ran.each {|a| result << [i.name, a]}
+              #ran.each {|a| result << [i.name, a]}
+              ran.each {|a| result << a }
             else
-              result << [i.name, ran]
+              #result << [i.name, ran]
+              result << ran
             end
           end
         end
